@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -125,6 +126,12 @@ namespace Microsoft.EntityFrameworkCore.ChangeTracking
         }
 
         /// <summary>
+        ///     Provides access to change tracking information and operations for all
+        ///     properties and navigation properties of this entity.
+        /// </summary>
+        public virtual IEnumerable<MemberEntry> Members => Properties.Cast<MemberEntry>().Concat(Navigations);
+
+        /// <summary>
         ///     Provides access to change tracking information and operations for a given
         ///     navigation property of this entity.
         /// </summary>
@@ -154,6 +161,23 @@ namespace Microsoft.EntityFrameworkCore.ChangeTracking
         }
 
         /// <summary>
+        ///     Provides access to change tracking information and operations for all
+        ///     navigation properties of this entity.
+        /// </summary>
+        public virtual IEnumerable<NavigationEntry> Navigations
+        {
+            get
+            {
+                foreach (var navigation in InternalEntry.EntityType.GetNavigations())
+                {
+                    yield return navigation.IsCollection()
+                        ? (NavigationEntry)new CollectionEntry(InternalEntry, navigation)
+                        : new ReferenceEntry(InternalEntry, navigation);
+                }
+            }
+        }
+
+        /// <summary>
         ///     Provides access to change tracking information and operations for a given
         ///     property of this entity.
         /// </summary>
@@ -164,6 +188,21 @@ namespace Microsoft.EntityFrameworkCore.ChangeTracking
             Check.NotEmpty(propertyName, nameof(propertyName));
 
             return new PropertyEntry(InternalEntry, propertyName);
+        }
+
+        /// <summary>
+        ///     Provides access to change tracking information and operations for all
+        ///     properties of this entity.
+        /// </summary>
+        public virtual IEnumerable<PropertyEntry> Properties
+        {
+            get
+            {
+                foreach (var property in InternalEntry.EntityType.GetProperties())
+                {
+                    yield return new PropertyEntry(InternalEntry, property);
+                }
+            }
         }
 
         /// <summary>
@@ -183,6 +222,21 @@ namespace Microsoft.EntityFrameworkCore.ChangeTracking
         }
 
         /// <summary>
+        ///     Provides access to change tracking information and loading information for all
+        ///     reference (i.e. non-collection) navigation properties of this entity.
+        /// </summary>
+        public virtual IEnumerable<ReferenceEntry> References
+        {
+            get
+            {
+                foreach (var navigation in InternalEntry.EntityType.GetNavigations().Where(n => !n.IsCollection()))
+                {
+                    yield return new ReferenceEntry(InternalEntry, navigation);
+                }
+            }
+        }
+
+        /// <summary>
         ///     Provides access to change tracking and loading information for a collection
         ///     navigation property that associates this entity to a collection of another entities.
         /// </summary>
@@ -196,6 +250,21 @@ namespace Microsoft.EntityFrameworkCore.ChangeTracking
             Check.NotEmpty(navigationPropertyName, nameof(navigationPropertyName));
 
             return new CollectionEntry(InternalEntry, navigationPropertyName);
+        }
+
+        /// <summary>
+        ///     Provides access to change tracking information and loading information for all
+        ///     collection navigation properties of this entity.
+        /// </summary>
+        public virtual IEnumerable<CollectionEntry> Collections
+        {
+            get
+            {
+                foreach (var navigation in InternalEntry.EntityType.GetNavigations().Where(n => n.IsCollection()))
+                {
+                    yield return new CollectionEntry(InternalEntry, navigation);
+                }
+            }
         }
 
         /// <summary>
