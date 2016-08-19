@@ -197,19 +197,22 @@ namespace Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
             }
 
             var candidateProperties = new List<string>();
-            foreach (var propertyInfo in entityType.ClrType.GetRuntimeProperties().OrderBy(p => p.Name))
+            var clrType = entityType.ClrType;
+            foreach (var memberInfo in clrType.GetRuntimeProperties().Cast<MemberInfo>()
+                .Concat(clrType.GetRuntimeFields()).OrderBy(p => p.Name))
             {
-                var targetType = FindCandidateNavigationPropertyType(propertyInfo);
+                var propertyInfo = memberInfo as PropertyInfo;
+                var targetType = propertyInfo == null ? null : FindCandidateNavigationPropertyType(propertyInfo);
                 if (targetType != null)
                 {
                     continue;
                 }
 
-                var attribute = propertyInfo.GetCustomAttribute<ForeignKeyAttribute>(true);
+                var attribute = memberInfo.GetCustomAttribute<ForeignKeyAttribute>(true);
                 if ((attribute != null)
                     && (attribute.Name == navigationName))
                 {
-                    candidateProperties.Add(propertyInfo.Name);
+                    candidateProperties.Add(memberInfo.Name);
                 }
             }
 
